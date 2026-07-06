@@ -24,6 +24,8 @@ from src.keyword_extraction import extract_top_keywords
 from src.trend_analysis import get_papers_by_year, get_keyword_trends, interpret_trends
 from src.gap_detection import detect_research_gaps
 from src.topic_modeling import create_topic_model
+from src.forecasting import forecast_keyword_trends
+from src.semantic_search import semantic_search_papers
 
 from src.data_loading import (
     create_project_folders,
@@ -133,6 +135,8 @@ page = st.sidebar.radio(
         "Keywords",
         "Topic Modeling",
         "Trend Analysis",
+        "Trend Forecasting",
+        "Semantic Search",
         "Research Gaps",
         "About Project"
     ]
@@ -190,6 +194,9 @@ if "keyword_df" not in st.session_state:
 if "trend_df" not in st.session_state:
     st.session_state.trend_df = pd.DataFrame()
 
+if "forecast_df" not in st.session_state:
+    st.session_state.forecast_df = pd.DataFrame()
+
 if "gap_df" not in st.session_state:
     st.session_state.gap_df = pd.DataFrame()
 
@@ -230,6 +237,8 @@ if fetch_button:
 
         trend_df = get_keyword_trends(clean_df, top_keywords)
 
+        forecast_df = forecast_keyword_trends(trend_df)
+
         gap_df = detect_research_gaps(trend_df)
 
         safe_num_topics = min(num_topics, len(clean_df))
@@ -243,6 +252,7 @@ if fetch_button:
         st.session_state.clean_df = clean_df
         st.session_state.keyword_df = keyword_df
         st.session_state.trend_df = trend_df
+        st.session_state.forecast_df = forecast_df
         st.session_state.gap_df = gap_df
         st.session_state.topic_summary_df = topic_summary_df
         st.session_state.paper_topics_df = paper_topics_df
@@ -251,6 +261,7 @@ if fetch_button:
         save_csv(clean_df, PROCESSED_DIR / "papers_clean.csv")
         save_csv(keyword_df, PROCESSED_DIR / "top_keywords.csv")
         save_csv(trend_df, PROCESSED_DIR / "trend_analysis.csv")
+        save_csv(forecast_df, PROCESSED_DIR / "trend_forecast.csv")
         save_csv(gap_df, PROCESSED_DIR / "research_gaps.csv")
         save_csv(topic_summary_df, PROCESSED_DIR / "topic_summary.csv")
         save_csv(paper_topics_df, PROCESSED_DIR / "paper_topics.csv")
@@ -268,6 +279,7 @@ if fetch_button:
 df = st.session_state.clean_df
 keyword_df = st.session_state.keyword_df
 trend_df = st.session_state.trend_df
+forecast_df = st.session_state.forecast_df
 gap_df = st.session_state.gap_df
 topic_summary_df = st.session_state.topic_summary_df
 paper_topics_df = st.session_state.paper_topics_df
@@ -283,7 +295,7 @@ st.markdown(
         ScholarGap: AI Research Intelligence System
     </div>
     <div class="sub-title">
-        Research Gap Discovery and Trend Prediction using NLP, Machine Learning, Topic Modeling, and Data Science
+        Research Gap Discovery and Trend Prediction using NLP, Machine Learning, Topic Modeling, Forecasting, Semantic Search, and Data Science
     </div>
     """,
     unsafe_allow_html=True
@@ -531,7 +543,140 @@ elif page == "Trend Analysis":
 
 
 # ============================================================
-# Page 6: Research Gaps
+# Page 6: Trend Forecasting
+# ============================================================
+
+elif page == "Trend Forecasting":
+
+    st.markdown(
+        '<div class="section-title">Trend Forecasting</div>',
+        unsafe_allow_html=True
+    )
+
+    st.write(
+        """
+        This section uses Linear Regression to forecast next-year keyword growth.
+        It predicts which research topics may increase, decrease, or stay stable.
+        """
+    )
+
+    st.dataframe(forecast_df, use_container_width=True)
+
+    if not forecast_df.empty:
+        fig = px.bar(
+            forecast_df,
+            x="keyword",
+            y="predicted_growth",
+            color="forecast_status",
+            title="Predicted Keyword Growth for Next Year"
+        )
+
+        fig.update_layout(
+            template="plotly_dark",
+            xaxis_title="Keyword",
+            yaxis_title="Predicted Growth"
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
+        st.markdown("### Forecast Interpretation")
+
+        for _, row in forecast_df.head(10).iterrows():
+            keyword = row["keyword"]
+            forecast_year = row["forecast_year"]
+            status = row["forecast_status"]
+            growth = row["predicted_growth"]
+
+            if status == "Expected to Grow":
+                st.success(
+                    f"{keyword} is expected to grow in {forecast_year}. Predicted growth: {growth}"
+                )
+            elif status == "Expected to Decline":
+                st.warning(
+                    f"{keyword} may decline in {forecast_year}. Predicted growth: {growth}"
+                )
+            else:
+                st.info(
+                    f"{keyword} may stay stable in {forecast_year}. Predicted growth: {growth}"
+                )
+
+    else:
+        st.info("Forecast data is not available. Please fetch papers again.")
+
+
+# ============================================================
+# Page 7: Semantic Search
+# ============================================================
+
+elif page == "Semantic Search":
+
+    st.markdown(
+        '<div class="section-title">Semantic Paper Search</div>',
+        unsafe_allow_html=True
+    )
+
+    st.write(
+        """
+        This section uses Sentence Transformers to search research papers based on meaning.
+        It can find relevant papers even when the exact keywords are different.
+        """
+    )
+
+    search_query = st.text_input(
+        "Enter your semantic search query",
+        value="hallucination reduction in retrieval augmented generation"
+    )
+
+    top_k = st.slider(
+        "Number of relevant papers to show",
+        min_value=3,
+        max_value=10,
+        value=5,
+        step=1
+    )
+
+    if st.button("Search Relevant Papers"):
+
+        with st.spinner("Searching papers using semantic similarity..."):
+
+            semantic_results = semantic_search_papers(
+                df,
+                user_query=search_query,
+                top_k=top_k
+            )
+
+        if semantic_results.empty:
+            st.warning("No semantic search results found.")
+        else:
+            st.success("Semantic search completed successfully.")
+
+            st.dataframe(
+                semantic_results,
+                use_container_width=True
+            )
+
+            st.markdown("### Top Matching Papers")
+
+            for _, row in semantic_results.iterrows():
+                similarity_score = round(float(row["similarity_score"]), 4)
+
+                st.markdown(
+                    f"""
+                    <div class="gap-card">
+                        <b>Rank:</b> {row['rank']}<br>
+                        <b>Similarity Score:</b> {similarity_score}<br>
+                        <b>Title:</b> {row['title']}<br>
+                        <b>Year:</b> {row['year']}<br>
+                        <b>Category:</b> {row['category']}<br>
+                        <b>Paper Link:</b> {row['paper_link']}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+
+# ============================================================
+# Page 8: Research Gaps
 # ============================================================
 
 elif page == "Research Gaps":
@@ -583,7 +728,7 @@ elif page == "Research Gaps":
 
 
 # ============================================================
-# Page 7: About Project
+# Page 9: About Project
 # ============================================================
 
 elif page == "About Project":
@@ -619,6 +764,8 @@ elif page == "About Project":
         - Extracts keywords using TF-IDF
         - Performs topic modeling using LDA
         - Compares keyword frequency year-wise
+        - Forecasts next-year keyword growth using Linear Regression
+        - Performs semantic search using Sentence Transformers
         - Finds increasing, decreasing, and stable research topics
         - Detects possible research gaps
         - Shows results in an interactive dashboard
@@ -632,6 +779,9 @@ elif page == "About Project":
         - Scikit-learn
         - TF-IDF
         - LDA Topic Modeling
+        - Linear Regression
+        - Sentence Transformers
+        - Semantic Search
         - Plotly
         - arXiv API
 
@@ -639,9 +789,10 @@ elif page == "About Project":
 
         ScholarGap is a Data Science and NLP project that collects research papers
         from arXiv and analyzes their titles, abstracts, categories, and publication dates.
-        It uses TF-IDF for keyword extraction, LDA for topic modeling, and year-wise
-        trend analysis to identify growing topics and possible research gaps.
-        The final output is an interactive dashboard that helps researchers understand
-        trending and less-explored research areas.
+        It uses TF-IDF for keyword extraction, LDA for topic modeling, year-wise trend
+        analysis, Linear Regression for forecasting future topic growth, and Sentence
+        Transformers for semantic paper search. The final output is an interactive
+        dashboard that helps researchers understand trending, declining, saturated,
+        and less-explored research areas.
         """
     )
