@@ -142,6 +142,7 @@ st.sidebar.title("Navigation")
 page = st.sidebar.radio(
     "Go to",
     [
+        "About Project",
         "Overview",
         "Research Papers",
         "Keywords",
@@ -150,8 +151,7 @@ page = st.sidebar.radio(
         "Trend Forecasting",
         "Semantic Search",
         "RAG Paper Q&A",
-        "Research Gaps",
-        "About Project"
+        "Research Gaps"
     ]
 )
 
@@ -249,9 +249,7 @@ if fetch_button:
         top_keywords = keyword_df["keyword"].head(8).tolist()
 
         trend_df = get_keyword_trends(clean_df, top_keywords)
-
         forecast_df = forecast_keyword_trends(trend_df)
-
         gap_df = detect_research_gaps(trend_df)
 
         safe_num_topics = min(num_topics, len(clean_df))
@@ -280,7 +278,7 @@ if fetch_button:
         save_csv(paper_topics_df, PROCESSED_DIR / "paper_topics.csv")
 
         save_text(query, PROCESSED_DIR / "latest_topic.txt")
-        save_text(end_year, PROCESSED_DIR / "latest_year.txt")
+        save_text(str(end_year), PROCESSED_DIR / "latest_year.txt")
 
         st.success("Papers fetched and analysis completed successfully.")
 
@@ -315,16 +313,81 @@ st.markdown(
 )
 
 
-if df.empty:
-    st.info("Select your topic and click 'Fetch and Analyze Papers' from the sidebar.")
-    st.stop()
+# ============================================================
+# About Project Page
+# This page works even before fetching papers
+# ============================================================
+
+if page == "About Project":
+
+    st.markdown(
+        '<div class="section-title">About ScholarGap</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        ### 📚 What is ScholarGap?
+
+        **ScholarGap** is an AI-powered research intelligence system that helps students,
+        researchers, and beginners discover research trends, future topic growth,
+        and possible research gaps from academic papers.
+
+        ### 🎯 Problem Statement
+
+        Students and researchers often struggle to find strong research topics.
+        They may not know which topics are trending, saturated, declining, or less explored.
+
+        ScholarGap solves this by analyzing research papers from arXiv using
+        **NLP, Machine Learning, Topic Modeling, Forecasting, Semantic Search, and RAG**.
+
+        ### 🚀 What ScholarGap Can Do
+
+        - Fetch research papers from arXiv
+        - Clean and preprocess title and abstract text
+        - Extract important keywords using TF-IDF
+        - Discover hidden research themes using LDA Topic Modeling
+        - Analyze year-wise research trends
+        - Forecast future keyword growth using Linear Regression
+        - Search papers using semantic similarity
+        - Generate RAG-based answers from paper abstracts
+        - Detect possible research gaps
+        - Show results in an interactive Streamlit dashboard
+
+        ### 🧠 Technologies Used
+
+        **Python, Streamlit, Pandas, Regex, Scikit-learn, TF-IDF, LDA Topic Modeling,
+        Linear Regression, Sentence Transformers, Semantic Search, RAG-style Q&A,
+        Plotly, and arXiv API.**
+
+        ### ✅ How to Use This App
+
+        1. Enter a research topic in the sidebar.
+        2. Select start year, end year, papers per year, and number of topics.
+        3. Click **Fetch and Analyze Papers**.
+        4. Explore keywords, trends, topics, forecasting, semantic search, RAG Q&A, and research gaps.
+
+        ### 💡 Project Value
+
+        This project shows practical skills in **Data Science, NLP, Machine Learning,
+        LLM/RAG concepts, research analytics, and dashboard deployment**.
+        """
+    )
+
+
+# ============================================================
+# Stop Other Pages Until Data Is Fetched
+# ============================================================
+
+elif df.empty:
+    st.info("Select your research topic and click 'Fetch and Analyze Papers' from the sidebar to start analysis.")
 
 
 # ============================================================
 # Page 1: Overview
 # ============================================================
 
-if page == "Overview":
+elif page == "Overview":
 
     st.markdown(
         '<div class="section-title">Project Overview</div>',
@@ -612,7 +675,6 @@ elif page == "Trend Forecasting":
                 st.info(
                     f"{keyword} may stay stable in {forecast_year}. Predicted growth: {growth}"
                 )
-
     else:
         st.info("Forecast data is not available. Please fetch papers again.")
 
@@ -802,74 +864,3 @@ elif page == "Research Gaps":
                     """,
                     unsafe_allow_html=True
                 )
-
-
-# ============================================================
-# Page 10: About Project
-# ============================================================
-
-elif page == "About Project":
-
-    st.markdown(
-        '<div class="section-title">About ScholarGap</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        """
-        ### What is ScholarGap?
-
-        ScholarGap is an AI Research Intelligence System that analyzes research papers
-        to discover research trends, future topic growth, and possible research gaps.
-
-        ### Problem Statement
-
-        Students and researchers often struggle to find good research topics.
-        They do not know which areas are trending, saturated, declining, or less explored.
-
-        ScholarGap solves this problem by using Data Science and NLP techniques
-        to analyze research papers from arXiv.
-
-        ### Data Source
-
-        The project uses research paper data from arXiv.
-
-        Main fields used:
-
-        - Title
-        - Abstract
-        - Published year
-        - Authors
-        - Category
-        - Paper link
-
-        ### Main Features
-
-        - Fetches research papers from arXiv
-        - Cleans title and abstract text
-        - Extracts important keywords using TF-IDF
-        - Performs topic modeling using LDA
-        - Compares research topic trends year-wise
-        - Forecasts future topic growth using Linear Regression
-        - Searches papers using semantic similarity
-        - Generates RAG-style answers from paper abstracts
-        - Detects possible research gaps
-        - Displays results in an interactive Streamlit dashboard
-
-        ### Technologies Used
-
-        - Python
-        - Streamlit
-        - Pandas
-        - Regex
-        - Scikit-learn
-        - TF-IDF
-        - LDA Topic Modeling
-        - Linear Regression
-        - Sentence Transformers
-        - Semantic Search
-        - RAG-style Q&A
-        - Plotly
-        - arXiv API
-        """
-    )
