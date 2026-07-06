@@ -26,6 +26,7 @@ from src.gap_detection import detect_research_gaps
 from src.topic_modeling import create_topic_model
 from src.forecasting import forecast_keyword_trends
 from src.semantic_search import semantic_search_papers
+from src.rag_qa import generate_rag_answer
 
 from src.data_loading import (
     create_project_folders,
@@ -108,6 +109,17 @@ st.markdown(
         padding: 18px;
         margin-bottom: 14px;
     }
+
+    .answer-box {
+        background-color: #111827;
+        border: 1px solid #374151;
+        border-left: 5px solid #22c55e;
+        border-radius: 14px;
+        padding: 18px;
+        margin-bottom: 14px;
+        color: white;
+        white-space: pre-wrap;
+    }
     </style>
     """,
     unsafe_allow_html=True
@@ -137,6 +149,7 @@ page = st.sidebar.radio(
         "Trend Analysis",
         "Trend Forecasting",
         "Semantic Search",
+        "RAG Paper Q&A",
         "Research Gaps",
         "About Project"
     ]
@@ -295,7 +308,7 @@ st.markdown(
         ScholarGap: AI Research Intelligence System
     </div>
     <div class="sub-title">
-        Research Gap Discovery and Trend Prediction using NLP, Machine Learning, Topic Modeling, Forecasting, Semantic Search, and Data Science
+        Research Gap Discovery and Trend Prediction using NLP, Machine Learning, Topic Modeling, Forecasting, Semantic Search, RAG, and Data Science
     </div>
     """,
     unsafe_allow_html=True
@@ -676,7 +689,71 @@ elif page == "Semantic Search":
 
 
 # ============================================================
-# Page 8: Research Gaps
+# Page 8: RAG Paper Q&A
+# ============================================================
+
+elif page == "RAG Paper Q&A":
+
+    st.markdown(
+        '<div class="section-title">RAG Paper Q&A</div>',
+        unsafe_allow_html=True
+    )
+
+    st.write(
+        """
+        Ask a question about the collected research papers.
+        The system retrieves relevant papers using semantic search and generates
+        an evidence-based answer from paper abstracts.
+        """
+    )
+
+    user_question = st.text_input(
+        "Ask your question",
+        value="What are the main research gaps in retrieval augmented generation?"
+    )
+
+    rag_top_k = st.slider(
+        "Number of papers to use for answer",
+        min_value=3,
+        max_value=10,
+        value=5,
+        step=1
+    )
+
+    if st.button("Generate RAG Answer"):
+
+        with st.spinner("Retrieving papers and generating answer..."):
+
+            answer, retrieved_papers = generate_rag_answer(
+                df,
+                question=user_question,
+                top_k=rag_top_k
+            )
+
+        st.markdown("### Generated Answer")
+
+        st.markdown(
+            f"""
+            <div class="answer-box">
+{answer}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.markdown("### Retrieved Papers Used")
+
+        if retrieved_papers.empty:
+            st.warning("No papers were retrieved.")
+        else:
+            st.dataframe(
+                retrieved_papers,
+                use_container_width=True
+            )
+
+
+# ============================================================
+# Page 9: Research Gaps
 # ============================================================
 
 elif page == "Research Gaps":
@@ -728,7 +805,7 @@ elif page == "Research Gaps":
 
 
 # ============================================================
-# Page 9: About Project
+# Page 10: About Project
 # ============================================================
 
 elif page == "About Project":
@@ -766,6 +843,7 @@ elif page == "About Project":
         - Compares keyword frequency year-wise
         - Forecasts next-year keyword growth using Linear Regression
         - Performs semantic search using Sentence Transformers
+        - Generates RAG-style answers from retrieved paper abstracts
         - Finds increasing, decreasing, and stable research topics
         - Detects possible research gaps
         - Shows results in an interactive dashboard
@@ -782,6 +860,7 @@ elif page == "About Project":
         - Linear Regression
         - Sentence Transformers
         - Semantic Search
+        - RAG-style Q&A
         - Plotly
         - arXiv API
 
@@ -790,9 +869,10 @@ elif page == "About Project":
         ScholarGap is a Data Science and NLP project that collects research papers
         from arXiv and analyzes their titles, abstracts, categories, and publication dates.
         It uses TF-IDF for keyword extraction, LDA for topic modeling, year-wise trend
-        analysis, Linear Regression for forecasting future topic growth, and Sentence
-        Transformers for semantic paper search. The final output is an interactive
-        dashboard that helps researchers understand trending, declining, saturated,
-        and less-explored research areas.
+        analysis, Linear Regression for forecasting future topic growth, Sentence
+        Transformers for semantic paper search, and a RAG-style Q&A module to generate
+        evidence-based answers from retrieved paper abstracts. The final output is an
+        interactive dashboard that helps researchers understand trending, declining,
+        saturated, and less-explored research areas.
         """
     )
