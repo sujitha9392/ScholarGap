@@ -145,3 +145,30 @@ The Streamlit dashboard contains:
 
 10.About Project 
   Explains the project, features, technologies, and purpose.
+
+
+Dashboard Screenshots
+---------------------
+
+- Overview 
+![Overview](assets/overview.png)
+
+- Keyword Extraction
+![Keyword Extraction](assets/keywords.png)
+
+- Topic Modeling
+![Topic Modeling](assets/topic_modeling.png)
+
+- Trend Analysis
+![Trend Analysis](assets/trend_analysis.png)
+
+- Trend Forecasting
+![Trend Forecasting](assets/trend_forecasting.png)
+- Semantic Search
+![Semantic Search](assets/semantic_search.png)
+
+- RAG Paper Q&A
+![RAG Paper Q&A](assets/rag_qa.png)
+
+- Research Gap Discovery
+![Research Gap Discovery](assets/research_gaps.png)
