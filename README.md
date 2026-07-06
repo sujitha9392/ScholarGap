@@ -1,84 +1,142 @@
-# ScholarGap: Research Gap Discovery and Trend Prediction
+ScholarGap: AI Research Intelligence System
+
+ScholarGap is a Data Science + NLP project that analyzes research papers from arXiv to identify research trends, topic growth, and possible research gaps.
+
+The project helps students and researchers understand which research areas are trending, declining, saturated, or less explored.
 
 
 
-ScholarGap is a data science and NLP project that analyzes research papers to identify important keywords, research trends, and possible research gap signals.
+Problem Statement
+
+Students and researchers often struggle to choose good research topics because they may not know:
+
+Which research topics are currently trending
+Which topics are already saturated
+Which topics are declining
+Which topics are less explored
+Where possible research gaps exist
+
+ScholarGap solves this problem by analyzing research paper titles, abstracts, categories, and publication years using NLP and machine learning techniques.
 
 
+Key Features
 
-The first version focuses on research papers related to Retrieval-Augmented Generation (RAG) Evaluation.
+Fetches research papers from arXiv
+Cleans paper titles and abstracts
+Extracts important keywords using TF-IDF
+Performs topic modeling using LDA
+Analyzes year-wise research trends
+Forecasts future topic growth using Linear Regression
+Performs semantic paper search using Sentence Transformers
+Generates RAG-style answers from paper abstracts
+Detects possible research gaps
+Displays results in an interactive Streamlit dashboard
 
+---
 
+Tech Stack
 
-## Project Objective
+1.Python
+2.Streamlit
+3.Pandas
+4.NumPy
+5.Regex
+6.Scikit-learn
+7.TF-IDF
+8.LDA Topic Modeling
+9.Linear Regression
+10.Sentence Transformers
+11.11 . Plotly
+12.arXiv API
 
+---
 
-
-The goal of ScholarGap is to help students and researchers understand emerging research areas by collecting research paper metadata, cleaning text data, extracting keywords, analyzing trends, and detecting possible research gaps from paper abstracts.
-
-
-
-## Features
-
-
-
-* Collects research papers from arXiv
-* Extracts title, abstract, year, authors, and URL
-* Cleans title and abstract text
-* Performs exploratory data analysis
-* Extracts important keywords from abstracts
-* Analyzes research term trends over years
-* Detects possible research gap signals
-* Displays results using a Streamlit dashboard
-
-
-
-## Tech Stack
-
-
-
-* Python
-* Pandas
-* NumPy
-* Requests
-* Matplotlib
-* Regular Expressions
-* Streamlit
-* Git and GitHub
+Project Workflow
 
 
+Research topic input
+        ↓
+Fetch papers from arXiv
+        ↓
+Clean titles and abstracts
+        ↓
+Extract keywords using TF-IDF
+        ↓
+Discover topics using LDA
+        ↓
+Analyze year-wise topic trends
+        ↓
+Forecast future topic growth
+        ↓
+Perform semantic paper search
+        ↓
+Generate RAG-style answers
+        ↓
+Detect possible research gaps
+        ↓
+Show results in Streamlit dashboard
 
-## Project Workflow
 
-###### 
-
-###### text:
+Project Structure
 
 
+ScholarGap/
+│
+├── app/
+│   └── streamlit_app.py
+│
+├── data/
+│   ├── raw/
+│   └── processed/
+│
+├── src/
+│   ├── data_collection.py
+│   ├── data_cleaning.py
+│   ├── data_loading.py
+│   ├── keyword_extraction.py
+│   ├── topic_modeling.py
+│   ├── trend_analysis.py
+│   ├── forecasting.py
+│   ├── semantic_search.py
+│   ├── rag_qa.py
+│   ├── gap_detection.py
+│   └── visualization.py
+│
+├── requirements.txt
+├── README.md
+└── .gitignore
 
-Data Collection
 
-&#x20;    ↓
+Dashboard Pages
 
-Data Cleaning
+The Streamlit dashboard contains:
 
-&#x20;    ↓
+Overview 
+  Shows total papers, total years, latest year, and discovered topics.
 
-Exploratory Data Analysis
+Research Papers 
+  Displays collected research papers with title, abstract, authors, category, year, and paper link.
 
-&#x20;    ↓
+Keywords
+  Shows important keywords extracted using TF-IDF.
 
-Keyword Extraction
+Topic Modeling  
+  Uses LDA to discover hidden research themes from paper titles and abstracts.
 
-&#x20;    ↓
+Trend Analysis  
+  Compares keyword frequency across years.
 
-Trend Analysis
+Trend Forecasting  
+  Uses Linear Regression to predict next-year topic growth.
 
-&#x20;    ↓
+Semantic Search 
+  Uses Sentence Transformers to find papers based on meaning, not only exact keywords.
 
-Research Gap Detection
+RAG Paper Q&A  
+  Retrieves relevant papers and generates evidence-based answers from paper abstracts.
 
-&#x20;    ↓
+Research Gaps  
+  Suggests possible research gaps based on topic coverage and year-wise growth.
 
-Streamlit Dashboard
-
+About Project  
+  Explains the project, features, technologies, and purpose.

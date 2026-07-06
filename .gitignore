@@ -20,3 +20,4 @@ data/processed/latest_topic.txt
 data/processed/latest_year.txt
 __pycache__/
 *.pyc
+README.md.txt
