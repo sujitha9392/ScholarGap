@@ -820,33 +820,41 @@ elif page == "About Project":
         ### What is ScholarGap?
 
         ScholarGap is an AI Research Intelligence System that analyzes research papers
-        to discover research trends and possible research gaps.
+        to discover research trends, future topic growth, and possible research gaps.
 
         ### Problem Statement
 
         Students and researchers often struggle to find good research topics.
-        They do not know which areas are trending, saturated, or less explored.
+        They do not know which areas are trending, saturated, declining, or less explored.
 
-        ScholarGap solves this problem by using NLP and machine learning techniques
-        to analyze research papers.
+        ScholarGap solves this problem by using Data Science and NLP techniques
+        to analyze research papers from arXiv.
 
         ### Data Source
 
-        The project uses arXiv research paper data.
+        The project uses research paper data from arXiv.
+
+        Main fields used:
+
+        - Title
+        - Abstract
+        - Published year
+        - Authors
+        - Category
+        - Paper link
 
         ### Main Features
 
-        - Fetches papers from arXiv
+        - Fetches research papers from arXiv
         - Cleans title and abstract text
-        - Extracts keywords using TF-IDF
+        - Extracts important keywords using TF-IDF
         - Performs topic modeling using LDA
-        - Compares keyword frequency year-wise
-        - Forecasts next-year keyword growth using Linear Regression
-        - Performs semantic search using Sentence Transformers
-        - Generates RAG-style answers from retrieved paper abstracts
-        - Finds increasing, decreasing, and stable research topics
+        - Compares research topic trends year-wise
+        - Forecasts future topic growth using Linear Regression
+        - Searches papers using semantic similarity
+        - Generates RAG-style answers from paper abstracts
         - Detects possible research gaps
-        - Shows results in an interactive dashboard
+        - Displays results in an interactive Streamlit dashboard
 
         ### Technologies Used
 
@@ -863,16 +871,5 @@ elif page == "About Project":
         - RAG-style Q&A
         - Plotly
         - arXiv API
-
-        ### Interview Explanation
-
-        ScholarGap is a Data Science and NLP project that collects research papers
-        from arXiv and analyzes their titles, abstracts, categories, and publication dates.
-        It uses TF-IDF for keyword extraction, LDA for topic modeling, year-wise trend
-        analysis, Linear Regression for forecasting future topic growth, Sentence
-        Transformers for semantic paper search, and a RAG-style Q&A module to generate
-        evidence-based answers from retrieved paper abstracts. The final output is an
-        interactive dashboard that helps researchers understand trending, declining,
-        saturated, and less-explored research areas.
         """
     )

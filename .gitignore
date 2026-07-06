@@ -14,3 +14,9 @@ data/processed/*
 models/*
 !models/.gitkeep
 reports/figures/
+data/raw/*.csv
+data/processed/*.csv
+data/processed/latest_topic.txt
+data/processed/latest_year.txt
+__pycache__/
+*.pyc
