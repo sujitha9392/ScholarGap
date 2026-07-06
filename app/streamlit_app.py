@@ -1,122 +1,647 @@
+from pathlib import Path
+import sys
+
 import streamlit as st
 import pandas as pd
-from pathlib import Path
+import plotly.express as px
 
+
+# ============================================================
+# Project Root Setup
+# ============================================================
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(PROJECT_ROOT))
+
+
+# ============================================================
+# Import Project Modules
+# ============================================================
+
+from src.data_collection import fetch_arxiv_papers
+from src.data_cleaning import clean_papers_data
+from src.keyword_extraction import extract_top_keywords
+from src.trend_analysis import get_papers_by_year, get_keyword_trends, interpret_trends
+from src.gap_detection import detect_research_gaps
+from src.topic_modeling import create_topic_model
+
+from src.data_loading import (
+    create_project_folders,
+    save_csv,
+    save_text,
+    RAW_DIR,
+    PROCESSED_DIR
+)
+
+from src.visualization import (
+    papers_by_year_chart,
+    keyword_bar_chart,
+    keyword_trend_chart
+)
+
+
+# ============================================================
+# Streamlit Page Configuration
+# ============================================================
 
 st.set_page_config(
     page_title="ScholarGap",
+    page_icon="📚",
     layout="wide"
 )
 
 
-st.title("ScholarGap: Research Gap Discovery and Trend Prediction")
+# ============================================================
+# CSS Styling
+# ============================================================
 
-st.write(
-    "ScholarGap analyzes research papers to discover keywords, trends, and possible research gaps."
+st.markdown(
+    """
+    <style>
+    .main-title {
+        font-size: 44px;
+        font-weight: 900;
+        color: white;
+        line-height: 1.2;
+        margin-bottom: 10px;
+    }
+
+    .sub-title {
+        font-size: 18px;
+        color: #d1d5db;
+        margin-bottom: 35px;
+    }
+
+    .section-title {
+        font-size: 32px;
+        font-weight: 800;
+        color: white;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+
+    .metric-box {
+        background-color: #111827;
+        border: 1px solid #374151;
+        border-radius: 18px;
+        padding: 22px;
+    }
+
+    .metric-label {
+        color: #d1d5db;
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    .metric-value {
+        color: white;
+        font-size: 40px;
+        font-weight: 900;
+    }
+
+    .gap-card {
+        background-color: #111827;
+        border-left: 5px solid #38bdf8;
+        border-radius: 14px;
+        padding: 18px;
+        margin-bottom: 14px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
 
-clean_data_path = Path("data/processed/rag_papers_clean.csv")
-keywords_path = Path("data/processed/top_keywords.csv")
-trends_path = Path("data/processed/trend_analysis.csv")
-gaps_path = Path("data/processed/research_gaps.csv")
+# ============================================================
+# Create Required Folders
+# ============================================================
 
+create_project_folders()
+
+
+# ============================================================
+# Sidebar
+# ============================================================
 
 st.sidebar.title("Navigation")
 
-section = st.sidebar.radio(
+page = st.sidebar.radio(
     "Go to",
     [
         "Overview",
         "Research Papers",
         "Keywords",
+        "Topic Modeling",
         "Trend Analysis",
-        "Research Gaps"
+        "Research Gaps",
+        "About Project"
     ]
 )
 
+st.sidebar.markdown("---")
+st.sidebar.header("Search Settings")
 
-if not clean_data_path.exists():
-    st.error("Clean data file not found. Run data cleaning first.")
+query = st.sidebar.text_input(
+    "Research Topic",
+    value="retrieval augmented generation"
+)
+
+start_year = st.sidebar.selectbox(
+    "Start Year",
+    [2020, 2021, 2022, 2023, 2024, 2025],
+    index=0
+)
+
+end_year = st.sidebar.selectbox(
+    "End Year",
+    [2021, 2022, 2023, 2024, 2025, 2026],
+    index=5
+)
+
+papers_per_year = st.sidebar.slider(
+    "Papers Per Year",
+    min_value=10,
+    max_value=100,
+    value=50,
+    step=10
+)
+
+num_topics = st.sidebar.slider(
+    "Number of Topics",
+    min_value=3,
+    max_value=10,
+    value=6,
+    step=1
+)
+
+fetch_button = st.sidebar.button("Fetch and Analyze Papers")
+
+
+# ============================================================
+# Session State
+# ============================================================
+
+if "clean_df" not in st.session_state:
+    st.session_state.clean_df = pd.DataFrame()
+
+if "keyword_df" not in st.session_state:
+    st.session_state.keyword_df = pd.DataFrame()
+
+if "trend_df" not in st.session_state:
+    st.session_state.trend_df = pd.DataFrame()
+
+if "gap_df" not in st.session_state:
+    st.session_state.gap_df = pd.DataFrame()
+
+if "topic_summary_df" not in st.session_state:
+    st.session_state.topic_summary_df = pd.DataFrame()
+
+if "paper_topics_df" not in st.session_state:
+    st.session_state.paper_topics_df = pd.DataFrame()
+
+
+# ============================================================
+# Fetch and Analyze Papers
+# ============================================================
+
+if fetch_button:
+    with st.spinner("Fetching papers from arXiv and analyzing..."):
+
+        raw_df = fetch_arxiv_papers(
+            query=query,
+            start_year=start_year,
+            end_year=end_year,
+            papers_per_year=papers_per_year
+        )
+
+        clean_df = clean_papers_data(raw_df)
+
+        if clean_df.empty:
+            st.error("No papers found. Try another research topic.")
+            st.stop()
+
+        keyword_df = extract_top_keywords(clean_df, top_n=25)
+
+        if keyword_df.empty:
+            st.error("Keywords could not be extracted. Try another research topic.")
+            st.stop()
+
+        top_keywords = keyword_df["keyword"].head(8).tolist()
+
+        trend_df = get_keyword_trends(clean_df, top_keywords)
+
+        gap_df = detect_research_gaps(trend_df)
+
+        safe_num_topics = min(num_topics, len(clean_df))
+
+        topic_summary_df, paper_topics_df = create_topic_model(
+            clean_df,
+            num_topics=safe_num_topics,
+            words_per_topic=8
+        )
+
+        st.session_state.clean_df = clean_df
+        st.session_state.keyword_df = keyword_df
+        st.session_state.trend_df = trend_df
+        st.session_state.gap_df = gap_df
+        st.session_state.topic_summary_df = topic_summary_df
+        st.session_state.paper_topics_df = paper_topics_df
+
+        save_csv(raw_df, RAW_DIR / "papers_raw.csv")
+        save_csv(clean_df, PROCESSED_DIR / "papers_clean.csv")
+        save_csv(keyword_df, PROCESSED_DIR / "top_keywords.csv")
+        save_csv(trend_df, PROCESSED_DIR / "trend_analysis.csv")
+        save_csv(gap_df, PROCESSED_DIR / "research_gaps.csv")
+        save_csv(topic_summary_df, PROCESSED_DIR / "topic_summary.csv")
+        save_csv(paper_topics_df, PROCESSED_DIR / "paper_topics.csv")
+
+        save_text(query, PROCESSED_DIR / "latest_topic.txt")
+        save_text(end_year, PROCESSED_DIR / "latest_year.txt")
+
+        st.success("Papers fetched and analysis completed successfully.")
+
+
+# ============================================================
+# Load Data from Session State
+# ============================================================
+
+df = st.session_state.clean_df
+keyword_df = st.session_state.keyword_df
+trend_df = st.session_state.trend_df
+gap_df = st.session_state.gap_df
+topic_summary_df = st.session_state.topic_summary_df
+paper_topics_df = st.session_state.paper_topics_df
+
+
+# ============================================================
+# Header
+# ============================================================
+
+st.markdown(
+    """
+    <div class="main-title">
+        ScholarGap: AI Research Intelligence System
+    </div>
+    <div class="sub-title">
+        Research Gap Discovery and Trend Prediction using NLP, Machine Learning, Topic Modeling, and Data Science
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
+if df.empty:
+    st.info("Select your topic and click 'Fetch and Analyze Papers' from the sidebar.")
     st.stop()
 
 
-df = pd.read_csv(clean_data_path)
+# ============================================================
+# Page 1: Overview
+# ============================================================
 
+if page == "Overview":
 
-if section == "Overview":
-    st.header("Project Overview")
+    st.markdown(
+        '<div class="section-title">Project Overview</div>',
+        unsafe_allow_html=True
+    )
 
-    col1, col2, col3 = st.columns(3)
+    total_papers = len(df)
+    total_years = df["year"].nunique()
+    latest_year = df["year"].max()
+    total_topics = topic_summary_df["topic_id"].nunique() if not topic_summary_df.empty else 0
 
-    col1.metric("Total Papers", df.shape[0])
-    col2.metric("Total Years", df["year"].nunique())
-    col3.metric("Latest Year", df["year"].max())
+    col1, col2, col3, col4 = st.columns(4)
 
-    st.subheader("Papers by Year")
+    with col1:
+        st.markdown(
+            f"""
+            <div class="metric-box">
+                <div class="metric-label">Total Papers</div>
+                <div class="metric-value">{total_papers}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-    papers_by_year = df["year"].value_counts().sort_index()
+    with col2:
+        st.markdown(
+            f"""
+            <div class="metric-box">
+                <div class="metric-label">Total Years</div>
+                <div class="metric-value">{total_years}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-    st.bar_chart(papers_by_year)
+    with col3:
+        st.markdown(
+            f"""
+            <div class="metric-box">
+                <div class="metric-label">Latest Year</div>
+                <div class="metric-value">{latest_year}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
+    with col4:
+        st.markdown(
+            f"""
+            <div class="metric-box">
+                <div class="metric-label">Discovered Topics</div>
+                <div class="metric-value">{total_topics}</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-elif section == "Research Papers":
-    st.header("Research Paper Dataset")
+    st.markdown("### Papers by Year")
+
+    papers_by_year = get_papers_by_year(df)
+    fig = papers_by_year_chart(papers_by_year)
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("### Dataset Preview")
 
     st.dataframe(
-        df[["title", "year", "authors", "url"]]
+        df[["title", "published_date", "year", "category", "paper_link"]].head(10),
+        use_container_width=True
     )
 
 
-elif section == "Keywords":
-    st.header("Top Keywords")
+# ============================================================
+# Page 2: Research Papers
+# ============================================================
 
-    if keywords_path.exists():
-        keywords_df = pd.read_csv(keywords_path)
+elif page == "Research Papers":
 
-        st.dataframe(keywords_df)
+    st.markdown(
+        '<div class="section-title">Collected Research Papers</div>',
+        unsafe_allow_html=True
+    )
 
-        st.subheader("Top 15 Keywords")
+    st.dataframe(
+        df[
+            [
+                "title",
+                "abstract",
+                "published_date",
+                "year",
+                "authors",
+                "category",
+                "paper_link"
+            ]
+        ],
+        use_container_width=True
+    )
 
-        top_keywords = keywords_df.head(15)
-        st.bar_chart(top_keywords.set_index("keyword")["count"])
+    csv = df.to_csv(index=False).encode("utf-8")
 
-    else:
-        st.warning("Keyword file not found. Run keyword extraction first.")
+    st.download_button(
+        label="Download Clean Papers CSV",
+        data=csv,
+        file_name="scholargap_clean_papers.csv",
+        mime="text/csv"
+    )
 
 
-elif section == "Trend Analysis":
-    st.header("Trend Analysis")
+# ============================================================
+# Page 3: Keywords
+# ============================================================
 
-    if trends_path.exists():
-        trends_df = pd.read_csv(trends_path)
+elif page == "Keywords":
 
-        selected_term = st.selectbox(
-            "Select a research term",
-            sorted(trends_df["term"].unique())
+    st.markdown(
+        '<div class="section-title">Keyword Extraction using TF-IDF</div>',
+        unsafe_allow_html=True
+    )
+
+    st.write(
+        """
+        This section extracts important keywords from research paper titles and abstracts
+        using TF-IDF. Higher score means the keyword is more important in the collected papers.
+        """
+    )
+
+    st.dataframe(keyword_df, use_container_width=True)
+
+    fig = keyword_bar_chart(keyword_df)
+    st.plotly_chart(fig, use_container_width=True)
+
+
+# ============================================================
+# Page 4: Topic Modeling
+# ============================================================
+
+elif page == "Topic Modeling":
+
+    st.markdown(
+        '<div class="section-title">Topic Modeling using LDA</div>',
+        unsafe_allow_html=True
+    )
+
+    st.write(
+        """
+        Topic modeling is an NLP technique used to discover hidden research themes
+        from paper titles and abstracts. LDA groups similar research papers into topics
+        based on repeated word patterns.
+        """
+    )
+
+    st.markdown("### Discovered Research Topics")
+
+    st.dataframe(topic_summary_df, use_container_width=True)
+
+    if not topic_summary_df.empty:
+        fig = px.bar(
+            topic_summary_df,
+            x="topic_id",
+            y="paper_count",
+            text="paper_count",
+            title="Number of Papers in Each Topic"
         )
 
-        term_df = trends_df[trends_df["term"] == selected_term]
-        term_df = term_df.sort_values("year")
+        fig.update_layout(
+            template="plotly_dark",
+            xaxis_title="Topic ID",
+            yaxis_title="Paper Count"
+        )
 
-        st.line_chart(term_df.set_index("year")["count"])
+        st.plotly_chart(fig, use_container_width=True)
 
-        st.dataframe(term_df)
+    st.markdown("### Paper-wise Topic Assignment")
 
-    else:
-        st.warning("Trend analysis file not found. Run trend analysis first.")
+    if not paper_topics_df.empty:
+        st.dataframe(
+            paper_topics_df[
+                [
+                    "title",
+                    "year",
+                    "dominant_topic",
+                    "topic_confidence",
+                    "paper_link"
+                ]
+            ],
+            use_container_width=True
+        )
 
 
-elif section == "Research Gaps":
-    st.header("Possible Research Gaps")
+# ============================================================
+# Page 5: Trend Analysis
+# ============================================================
 
-    if gaps_path.exists():
-        gaps_df = pd.read_csv(gaps_path)
+elif page == "Trend Analysis":
 
-        if gaps_df.empty:
-            st.info("No gap pattern matches found in the current dataset.")
+    st.markdown(
+        '<div class="section-title">Trend Analysis</div>',
+        unsafe_allow_html=True
+    )
+
+    st.write(
+        """
+        This section compares keyword frequency across previous years and current year.
+        If the count increases year by year, the topic is considered trending.
+        """
+    )
+
+    st.dataframe(trend_df, use_container_width=True)
+
+    fig = keyword_trend_chart(trend_df)
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("### Trend Interpretation")
+
+    trend_summary = interpret_trends(trend_df)
+
+    st.dataframe(trend_summary, use_container_width=True)
+
+    for _, row in trend_summary.iterrows():
+        keyword = row["keyword"]
+        status = row["trend_status"]
+        growth = row["growth"]
+
+        if status == "Increasing":
+            st.success(f"{keyword} is increasing compared to previous years. Growth: {growth}")
+        elif status == "Decreasing":
+            st.warning(f"{keyword} is decreasing compared to previous years. Growth: {growth}")
         else:
-            st.dataframe(gaps_df)
+            st.info(f"{keyword} is stable compared to previous years.")
 
+
+# ============================================================
+# Page 6: Research Gaps
+# ============================================================
+
+elif page == "Research Gaps":
+
+    st.markdown(
+        '<div class="section-title">Research Gap Discovery</div>',
+        unsafe_allow_html=True
+    )
+
+    st.write(
+        """
+        This section identifies possible research gaps using keyword count,
+        year-wise growth, and topic coverage.
+        """
+    )
+
+    st.dataframe(gap_df, use_container_width=True)
+
+    st.markdown("### Suggested Research Gaps")
+
+    if "gap_type" not in gap_df.columns:
+        st.info("Gap analysis output is not available. Please fetch papers again.")
     else:
-        st.warning("Research gap file not found. Run gap detection first.")
+        suggested_gaps = gap_df[
+            gap_df["gap_type"].isin(["Emerging Research Gap", "Less Explored Topic"])
+        ]
+
+        if suggested_gaps.empty:
+            st.info("No strong research gap found. Try another topic or increase papers per year.")
+        else:
+            for _, row in suggested_gaps.head(10).iterrows():
+                explanation = row.get(
+                    "explanation",
+                    "This topic may have low coverage or possible future research opportunity."
+                )
+
+                st.markdown(
+                    f"""
+                    <div class="gap-card">
+                        <b>Possible Gap:</b> {row['keyword']}<br>
+                        <b>Total Papers:</b> {row['total_papers']}<br>
+                        <b>Growth:</b> {row['growth']}<br>
+                        <b>Gap Type:</b> {row['gap_type']}<br>
+                        <b>Explanation:</b> {explanation}
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+
+# ============================================================
+# Page 7: About Project
+# ============================================================
+
+elif page == "About Project":
+
+    st.markdown(
+        '<div class="section-title">About ScholarGap</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        """
+        ### What is ScholarGap?
+
+        ScholarGap is an AI Research Intelligence System that analyzes research papers
+        to discover research trends and possible research gaps.
+
+        ### Problem Statement
+
+        Students and researchers often struggle to find good research topics.
+        They do not know which areas are trending, saturated, or less explored.
+
+        ScholarGap solves this problem by using NLP and machine learning techniques
+        to analyze research papers.
+
+        ### Data Source
+
+        The project uses arXiv research paper data.
+
+        ### Main Features
+
+        - Fetches papers from arXiv
+        - Cleans title and abstract text
+        - Extracts keywords using TF-IDF
+        - Performs topic modeling using LDA
+        - Compares keyword frequency year-wise
+        - Finds increasing, decreasing, and stable research topics
+        - Detects possible research gaps
+        - Shows results in an interactive dashboard
+
+        ### Technologies Used
+
+        - Python
+        - Streamlit
+        - Pandas
+        - Regex
+        - Scikit-learn
+        - TF-IDF
+        - LDA Topic Modeling
+        - Plotly
+        - arXiv API
+
+        ### Interview Explanation
+
+        ScholarGap is a Data Science and NLP project that collects research papers
+        from arXiv and analyzes their titles, abstracts, categories, and publication dates.
+        It uses TF-IDF for keyword extraction, LDA for topic modeling, and year-wise
+        trend analysis to identify growing topics and possible research gaps.
+        The final output is an interactive dashboard that helps researchers understand
+        trending and less-explored research areas.
+        """
+    )

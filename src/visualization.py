@@ -1,98 +1,56 @@
-from pathlib import Path
-import pandas as pd
-import matplotlib.pyplot as plt
-import re
-from collections import Counter
+import plotly.express as px
 
 
-def load_clean_data(file_path):
-    """
-    Load cleaned research paper data.
-    """
+def papers_by_year_chart(papers_by_year):
+    fig = px.bar(
+        papers_by_year,
+        x="year",
+        y="paper_count",
+        text="paper_count",
+        title="Papers by Year"
+    )
 
-    file_path = Path(file_path)
+    fig.update_layout(
+        template="plotly_dark",
+        xaxis_title="Year",
+        yaxis_title="Number of Papers"
+    )
 
-    if not file_path.exists():
-        print(f"File not found: {file_path}")
-        return None
-
-    df = pd.read_csv(file_path)
-
-    print("Clean data loaded successfully")
-    return df
-
-
-def plot_papers_by_year(df, output_path):
-    """
-    Create a bar chart showing number of papers by year.
-    """
-
-    papers_by_year = df["year"].value_counts().sort_index()
-
-    plt.figure(figsize=(10, 6))
-    papers_by_year.plot(kind="bar")
-
-    plt.title("Number of RAG Evaluation Papers by Year")
-    plt.xlabel("Year")
-    plt.ylabel("Number of Papers")
-    plt.tight_layout()
-
-    output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    plt.savefig(output_path)
-    plt.close()
-
-    print(f"Papers by year chart saved to: {output_path}")
+    return fig
 
 
-def plot_top_title_words(df, output_path, top_n=15):
-    """
-    Create a bar chart of most common words in paper titles.
-    """
+def keyword_bar_chart(keyword_df):
+    fig = px.bar(
+        keyword_df.sort_values("score"),
+        x="score",
+        y="keyword",
+        orientation="h",
+        title="Top Keywords"
+    )
 
-    all_titles = " ".join(df["title_clean"].dropna().astype(str))
+    fig.update_layout(
+        template="plotly_dark",
+        xaxis_title="TF-IDF Score",
+        yaxis_title="Keyword"
+    )
 
-    words = re.findall(r"\b[a-zA-Z]{3,}\b", all_titles)
-
-    stop_words = {
-        "the", "and", "for", "with", "from", "this", "that",
-        "using", "based", "towards", "into", "are", "was",
-        "retrieval", "augmented", "generation"
-    }
-
-    filtered_words = [word for word in words if word not in stop_words]
-
-    word_counts = Counter(filtered_words)
-
-    top_words = word_counts.most_common(top_n)
-
-    words = [item[0] for item in top_words]
-    counts = [item[1] for item in top_words]
-
-    plt.figure(figsize=(10, 6))
-    plt.bar(words, counts)
-
-    plt.title("Top Words in RAG Evaluation Paper Titles")
-    plt.xlabel("Words")
-    plt.ylabel("Frequency")
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-
-    output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    plt.savefig(output_path)
-    plt.close()
-
-    print(f"Top title words chart saved to: {output_path}")
+    return fig
 
 
-if __name__ == "__main__":
-    clean_file = "data/processed/rag_papers_clean.csv"
+def keyword_trend_chart(trend_df):
+    fig = px.line(
+        trend_df,
+        x="year",
+        y="count",
+        color="keyword",
+        markers=True,
+        title="Keyword Trend Over Years"
+    )
 
-    df = load_clean_data(clean_file)
+    fig.update_layout(
+        template="plotly_dark",
+        xaxis_title="Year",
+        yaxis_title="Keyword Count"
+    )
 
-    if df is not None:
-        plot_papers_by_year(df, "reports/figures/papers_by_year.png")
-        plot_top_title_words(df, "reports/figures/top_title_words.png")
+    return fig

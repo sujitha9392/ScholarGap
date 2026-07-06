@@ -1,58 +1,38 @@
-from pathlib import Path
-import pandas as pd
 import re
+import pandas as pd
 
 
 def clean_text(text):
     """
-    Clean text by lowercasing, removing extra spaces, and removing unwanted symbols.
+    Clean text for NLP analysis.
     """
 
-    text = str(text)
+    if pd.isna(text):
+        return ""
+
     text = text.lower()
+    text = re.sub(r"http\S+", " ", text)
+    text = re.sub(r"[^a-zA-Z0-9\s]", " ", text)
     text = re.sub(r"\s+", " ", text)
-    text = text.strip()
 
-    return text
+    return text.strip()
 
 
-def clean_paper_data(input_path, output_path):
+def clean_papers_data(df):
     """
-    Load raw paper data, clean it, and save processed data.
+    Clean title and abstract columns.
     """
 
-    input_path = Path(input_path)
-    output_path = Path(output_path)
+    if df.empty:
+        return df
 
-    if not input_path.exists():
-        print(f"File not found: {input_path}")
-        return None
+    df = df.copy()
 
-    df = pd.read_csv(input_path)
-
-    print("Raw data loaded")
-    print(f"Rows before cleaning: {df.shape[0]}")
-
+    df = df.drop_duplicates(subset=["title", "abstract"])
     df = df.dropna(subset=["title", "abstract"])
 
-    df = df.drop_duplicates(subset=["title"])
+    df["clean_title"] = df["title"].apply(clean_text)
+    df["clean_abstract"] = df["abstract"].apply(clean_text)
+    df["combined_text"] = df["clean_title"] + " " + df["clean_abstract"]
 
-    df["title_clean"] = df["title"].apply(clean_text)
-    df["abstract_clean"] = df["abstract"].apply(clean_text)
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-
-    df.to_csv(output_path, index=False)
-
-    print("Data cleaning completed")
-    print(f"Rows after cleaning: {df.shape[0]}")
-    print(f"Clean data saved to: {output_path}")
-
-    return df
-
-
-if __name__ == "__main__":
-    raw_file = "data/raw/rag_papers_raw.csv"
-    clean_file = "data/processed/rag_papers_clean.csv"
-
-    clean_paper_data(raw_file, clean_file)
+    return df.reset_index(drop=True)

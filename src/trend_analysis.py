@@ -1,61 +1,79 @@
 import pandas as pd
-from pathlib import Path
 
 
-TREND_TERMS = [
-    "evaluation",
-    "hallucination",
-    "faithfulness",
-    "retrieval",
-    "benchmark",
-    "question",
-    "answering",
-    "knowledge",
-    "reasoning",
-    "metrics"
-]
+def get_papers_by_year(df):
+    """
+    Count papers year-wise.
+    """
+
+    if df.empty:
+        return pd.DataFrame(columns=["year", "paper_count"])
+
+    return (
+        df.groupby("year")
+        .size()
+        .reset_index(name="paper_count")
+        .sort_values("year")
+    )
 
 
-def analyze_trends(input_path, output_path):
-    input_path = Path(input_path)
-    output_path = Path(output_path)
+def get_keyword_trends(df, keywords):
+    """
+    Count keyword occurrence year-wise.
+    """
 
-    if not input_path.exists():
-        print(f"File not found: {input_path}")
-        return
-
-    df = pd.read_csv(input_path)
-
-    trend_rows = []
+    trend_data = []
 
     for year in sorted(df["year"].unique()):
         year_df = df[df["year"] == year]
 
-        all_abstracts = " ".join(
-            year_df["abstract_clean"].dropna().astype(str)
-        )
+        for keyword in keywords:
+            count = year_df["combined_text"].str.contains(
+                keyword,
+                case=False,
+                na=False,
+                regex=False
+            ).sum()
 
-        for term in TREND_TERMS:
-            count = all_abstracts.count(term)
-
-            trend_rows.append({
+            trend_data.append({
                 "year": year,
-                "term": term,
-                "count": count
+                "keyword": keyword,
+                "count": int(count)
             })
 
-    trend_df = pd.DataFrame(trend_rows)
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    trend_df.to_csv(output_path, index=False)
-
-    print("Trend analysis completed")
-    print(trend_df)
-    print(f"Saved to: {output_path}")
+    return pd.DataFrame(trend_data)
 
 
-if __name__ == "__main__":
-    analyze_trends(
-        "data/processed/rag_papers_clean.csv",
-        "data/processed/trend_analysis.csv"
-    )
+def interpret_trends(trend_df):
+    """
+    Give simple trend interpretation.
+    """
+
+    results = []
+
+    for keyword in trend_df["keyword"].unique():
+        temp = trend_df[trend_df["keyword"] == keyword].sort_values("year")
+
+        if len(temp) < 2:
+            continue
+
+        first_count = temp.iloc[0]["count"]
+        latest_count = temp.iloc[-1]["count"]
+        growth = latest_count - first_count
+
+        if growth > 0:
+            status = "Increasing"
+        elif growth < 0:
+            status = "Decreasing"
+        else:
+            status = "Stable"
+
+        results.append({
+            "keyword": keyword,
+            "first_year_count": int(first_count),
+            "latest_year_count": int(latest_count),
+            "growth": int(growth),
+            "trend_status": status
+        })
+
+    return pd.DataFrame(results)

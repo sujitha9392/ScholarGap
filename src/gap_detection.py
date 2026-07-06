@@ -1,64 +1,57 @@
 import pandas as pd
-from pathlib import Path
 
 
-GAP_PATTERNS = [
-    "limitation",
-    "limitations",
-    "future work",
-    "challenge",
-    "challenges",
-    "not fully explored",
-    "open problem",
-    "further research",
-    "lack of",
-    "underexplored",
-    "difficult",
-    "unclear"
-]
+def detect_research_gaps(trend_df):
+    """
+    Detect possible research gaps.
 
+    Logic:
+    Less total papers + positive growth = emerging research gap.
+    """
 
-def detect_research_gaps(input_path, output_path):
-    input_path = Path(input_path)
-    output_path = Path(output_path)
+    if trend_df.empty:
+        return pd.DataFrame()
 
-    if not input_path.exists():
-        print(f"File not found: {input_path}")
-        return
+    results = []
 
-    df = pd.read_csv(input_path)
+    total_counts = trend_df.groupby("keyword")["count"].sum()
+    low_cutoff = max(3, total_counts.quantile(0.35))
 
-    gap_rows = []
+    for keyword in trend_df["keyword"].unique():
+        temp = trend_df[trend_df["keyword"] == keyword].sort_values("year")
 
-    for _, row in df.iterrows():
-        abstract = str(row["abstract_clean"])
+        total_papers = temp["count"].sum()
+        first_count = temp.iloc[0]["count"]
+        latest_count = temp.iloc[-1]["count"]
+        growth = latest_count - first_count
 
-        matched_patterns = []
+        if total_papers <= low_cutoff and growth > 0:
+            gap_type = "Emerging Research Gap"
+            explanation = "This topic has low research count but is growing in recent years."
+        elif total_papers <= low_cutoff:
+            gap_type = "Less Explored Topic"
+            explanation = "This topic has fewer papers compared to other topics."
+        elif growth > 0:
+            gap_type = "Trending Topic"
+            explanation = "This topic is growing compared to previous years."
+        elif growth < 0:
+            gap_type = "Declining Topic"
+            explanation = "This topic is decreasing compared to previous years."
+        else:
+            gap_type = "Stable / Saturated Topic"
+            explanation = "This topic is not showing strong growth."
 
-        for pattern in GAP_PATTERNS:
-            if pattern in abstract:
-                matched_patterns.append(pattern)
+        results.append({
+            "keyword": keyword,
+            "total_papers": int(total_papers),
+            "first_year_count": int(first_count),
+            "latest_year_count": int(latest_count),
+            "growth": int(growth),
+            "gap_type": gap_type,
+            "explanation": explanation
+        })
 
-        if matched_patterns:
-            gap_rows.append({
-                "title": row["title"],
-                "year": row["year"],
-                "matched_gap_terms": ", ".join(matched_patterns),
-                "url": row["url"]
-            })
+    gap_df = pd.DataFrame(results)
+    gap_df = gap_df.sort_values(by=["gap_type", "growth"], ascending=[True, False])
 
-    gap_df = pd.DataFrame(gap_rows)
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    gap_df.to_csv(output_path, index=False)
-
-    print("Research gap detection completed")
-    print(gap_df)
-    print(f"Saved to: {output_path}")
-
-
-if __name__ == "__main__":
-    detect_research_gaps(
-        "data/processed/rag_papers_clean.csv",
-        "data/processed/research_gaps.csv"
-    )
+    return gap_df.reset_index(drop=True)

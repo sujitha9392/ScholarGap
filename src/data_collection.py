@@ -1,86 +1,73 @@
+import time
 import requests
-import pandas as pd
 import xml.etree.ElementTree as ET
 from urllib.parse import quote
+import pandas as pd
 
 
-def fetch_arxiv_papers(query, max_results=50):
+def fetch_arxiv_papers(query, start_year=2020, end_year=2026, papers_per_year=50):
     """
-    Fetch research papers from arXiv API based on a search query.
+    Fetch research papers from arXiv year-wise.
     """
 
-    base_url = "http://export.arxiv.org/api/query"
+    all_papers = []
 
-    encoded_query = quote(query)
+    for year in range(start_year, end_year + 1):
+        search_query = quote(
+            f'all:"{query}" AND submittedDate:[{year}01010000 TO {year}12312359]'
+        )
 
-    url = (
-        f"{base_url}?"
-        f"search_query=all:{encoded_query}"
-        f"&start=0"
-        f"&max_results={max_results}"
-        f"&sortBy=submittedDate"
-        f"&sortOrder=descending"
-    )
+        url = (
+            "http://export.arxiv.org/api/query?"
+            f"search_query={search_query}"
+            f"&start=0"
+            f"&max_results={papers_per_year}"
+            f"&sortBy=submittedDate"
+            f"&sortOrder=descending"
+        )
 
-    response = requests.get(url)
+        response = requests.get(url, timeout=30)
 
-    if response.status_code != 200:
-        print("Failed to fetch papers")
-        return []
+        if response.status_code != 200:
+            print(f"Failed to fetch papers for {year}")
+            continue
 
-    root = ET.fromstring(response.content)
+        root = ET.fromstring(response.content)
 
-    namespace = {
-        "atom": "http://www.w3.org/2005/Atom"
-    }
-
-    papers = []
-
-    for entry in root.findall("atom:entry", namespace):
-        title = entry.find("atom:title", namespace).text.strip().replace("\n", " ")
-        abstract = entry.find("atom:summary", namespace).text.strip().replace("\n", " ")
-        published_date = entry.find("atom:published", namespace).text.strip()
-        year = published_date[:4]
-
-        authors_list = []
-
-        for author in entry.findall("atom:author", namespace):
-            name = author.find("atom:name", namespace).text
-            authors_list.append(name)
-
-        authors = ", ".join(authors_list)
-
-        paper_url = entry.find("atom:id", namespace).text.strip()
-
-        paper = {
-            "title": title,
-            "abstract": abstract,
-            "published_date": published_date,
-            "year": year,
-            "authors": authors,
-            "url": paper_url
+        namespace = {
+            "atom": "http://www.w3.org/2005/Atom"
         }
 
-        papers.append(paper)
+        entries = root.findall("atom:entry", namespace)
 
-    return papers
+        for entry in entries:
+            title = entry.find("atom:title", namespace)
+            abstract = entry.find("atom:summary", namespace)
+            published = entry.find("atom:published", namespace)
+            paper_link = entry.find("atom:id", namespace)
 
+            authors = []
+            for author in entry.findall("atom:author", namespace):
+                name = author.find("atom:name", namespace)
+                if name is not None:
+                    authors.append(name.text)
 
-def save_papers_to_csv(papers, file_path):
-    """
-    Save collected paper data into a CSV file.
-    """
+            categories = []
+            for category in entry.findall("atom:category", namespace):
+                term = category.attrib.get("term")
+                if term:
+                    categories.append(term)
 
-    df = pd.DataFrame(papers)
+            all_papers.append({
+                "title": title.text.replace("\n", " ").strip() if title is not None else "",
+                "abstract": abstract.text.replace("\n", " ").strip() if abstract is not None else "",
+                "published_date": published.text[:10] if published is not None else "",
+                "year": year,
+                "authors": ", ".join(authors),
+                "category": ", ".join(categories),
+                "paper_link": paper_link.text if paper_link is not None else ""
+            })
 
-    df.to_csv(file_path, index=False)
+        time.sleep(1)
 
-    print(f"Saved {len(df)} papers to {file_path}")
-
-
-if __name__ == "__main__":
-    search_query = "retrieval augmented generation evaluation"
-
-    papers = fetch_arxiv_papers(search_query, max_results=50)
-
-    save_papers_to_csv(papers, "data/raw/rag_papers_raw.csv")
+    return pd.DataFrame(all_papers)
