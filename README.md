@@ -7,34 +7,36 @@ The project helps students and researchers understand which research areas are t
 
 
 Problem Statement
+-----------------
 
 Students and researchers often struggle to choose good research topics because they may not know:
 
-Which research topics are currently trending
-Which topics are already saturated
-Which topics are declining
-Which topics are less explored
-Where possible research gaps exist
+- Which research topics are currently trending
+- Which topics are already saturated
+- Which topics are declining
+- Which topics are less explored
+- Where possible research gaps exist
 
 ScholarGap solves this problem by analyzing research paper titles, abstracts, categories, and publication years using NLP and machine learning techniques.
 
 
 Key Features
+------------
 
-Fetches research papers from arXiv
-Cleans paper titles and abstracts
-Extracts important keywords using TF-IDF
-Performs topic modeling using LDA
-Analyzes year-wise research trends
-Forecasts future topic growth using Linear Regression
-Performs semantic paper search using Sentence Transformers
-Generates RAG-style answers from paper abstracts
-Detects possible research gaps
-Displays results in an interactive Streamlit dashboard
+- Fetches research papers from arXiv
+- Cleans paper titles and abstracts
+- Extracts important keywords using TF-IDF
+- Performs topic modeling using LDA
+- Analyzes year-wise research trends
+- Forecasts future topic growth using Linear Regression
+- Performs semantic paper search using Sentence Transformers
+- Generates RAG-style answers from paper abstracts
+- Detects possible research gaps
+- Displays results in an interactive Streamlit dashboard
 
----
 
 Tech Stack
+----------
 
 1.Python
 2.Streamlit
@@ -49,9 +51,10 @@ Tech Stack
 11.11 . Plotly
 12.arXiv API
 
----
 
-Project Workflow
+
+Project Workflow 
+----------------
 
 
 Research topic input
@@ -78,6 +81,7 @@ Show results in Streamlit dashboard
 
 
 Project Structure
+-----------------
 
 
 ScholarGap/
@@ -108,35 +112,36 @@ ScholarGap/
 
 
 Dashboard Pages
+---------------
 
 The Streamlit dashboard contains:
 
-Overview 
+1.Overview 
   Shows total papers, total years, latest year, and discovered topics.
 
-Research Papers 
+2.Research Papers 
   Displays collected research papers with title, abstract, authors, category, year, and paper link.
 
-Keywords
+3.Keywords
   Shows important keywords extracted using TF-IDF.
 
-Topic Modeling  
+4.Topic Modeling  
   Uses LDA to discover hidden research themes from paper titles and abstracts.
 
-Trend Analysis  
+5.Trend Analysis 
   Compares keyword frequency across years.
 
-Trend Forecasting  
+6.Trend Forecasting  
   Uses Linear Regression to predict next-year topic growth.
 
-Semantic Search 
+7.Semantic Search 
   Uses Sentence Transformers to find papers based on meaning, not only exact keywords.
 
-RAG Paper Q&A  
+8.RAG Paper Q&A 
   Retrieves relevant papers and generates evidence-based answers from paper abstracts.
 
-Research Gaps  
+9.Research Gaps 
   Suggests possible research gaps based on topic coverage and year-wise growth.
 
-About Project  
+10.About Project 
   Explains the project, features, technologies, and purpose.
